@@ -1,0 +1,30 @@
+# Primer stage | Build de la imagen
+docker-build:
+  # Imagen oficial de Docker
+  image: docker:latest
+  stage: build
+  # Servicio docker in docker
+  services:
+    - docker:dind
+  # Login a dockerhub
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD"
+  # Construción y subida de la imagen
+  script:
+    - docker build --pull -t "$CI_REGISTRY_USER"/"$CI_REGISTRY_IMAGE":"$CI_COMMIT_SHA" .
+    - docker push "$CI_REGISTRY_USER"/"$CI_REGISTRY_IMAGE"
+  # Variables para permitir a docker accesa al clúster
+  variables:
+    DOCKER_HOST: tcp://localhost:2375
+    DOCKER_TLS_CERTDIR: ""
+
+# Segundo stage | Despliegue de la aplicación
+deploy:
+  stage: deploy
+  # Imagen oficial de kubernetes
+  image: dtzar/helm-kubectl
+  # Comprobación y despliegue
+  script:
+    - cd helmChart
+    - helm upgrade --install php . -f values.yaml -n default --kubeconfig=../kubeconfig.yaml --set image.repository="$CI_REGISTRY_USER"/"$CI_REGISTRY_IMAGE" --set image.tag="$CI_COMMIT_SHA"
+
