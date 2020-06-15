@@ -15,7 +15,7 @@
 <body>
 
   <?php
-    $nota = "?";
+    $nota = 10;
   ?>
 
   <header class="bg-success text-white">
